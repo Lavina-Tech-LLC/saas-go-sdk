@@ -1,6 +1,9 @@
 package auth
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // --- User types ---
 
@@ -13,6 +16,24 @@ type User struct {
 	Provider      string `json:"provider"`
 	Metadata      string `json:"metadata,omitempty"`
 	MFAEnabled    bool   `json:"mfaEnabled,omitempty"`
+}
+
+// ParseMetadata unmarshals the user's Metadata JSON string into a map.
+func (u *User) ParseMetadata() (map[string]interface{}, error) {
+	if u.Metadata == "" {
+		return map[string]interface{}{}, nil
+	}
+	var m map[string]interface{}
+	err := json.Unmarshal([]byte(u.Metadata), &m)
+	return m, err
+}
+
+// ParseMetadataTo unmarshals the user's Metadata JSON string into dest.
+func (u *User) ParseMetadataTo(dest interface{}) error {
+	if u.Metadata == "" {
+		return nil
+	}
+	return json.Unmarshal([]byte(u.Metadata), dest)
 }
 
 // --- Auth result types ---
@@ -172,6 +193,24 @@ type Org struct {
 	Slug      string `json:"slug"`
 	AvatarURL string `json:"avatarUrl,omitempty"`
 	Metadata  string `json:"metadata,omitempty"`
+}
+
+// ParseMetadata unmarshals the org's Metadata JSON string into a map.
+func (o *Org) ParseMetadata() (map[string]interface{}, error) {
+	if o.Metadata == "" {
+		return map[string]interface{}{}, nil
+	}
+	var m map[string]interface{}
+	err := json.Unmarshal([]byte(o.Metadata), &m)
+	return m, err
+}
+
+// ParseMetadataTo unmarshals the org's Metadata JSON string into dest.
+func (o *Org) ParseMetadataTo(dest interface{}) error {
+	if o.Metadata == "" {
+		return nil
+	}
+	return json.Unmarshal([]byte(o.Metadata), dest)
 }
 
 // CreateOrgParams are the parameters for CreateOrg.

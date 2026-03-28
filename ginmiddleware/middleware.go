@@ -3,8 +3,8 @@ package ginmiddleware
 import (
 	"strings"
 
-	saassupport "github.com/Lavina-Tech-LLC/saas-support-go"
-	"github.com/Lavina-Tech-LLC/saas-support-go/auth"
+	saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
+	"github.com/Lavina-Tech-LLC/saas-go-sdk/auth"
 	"github.com/gin-gonic/gin"
 )
 
