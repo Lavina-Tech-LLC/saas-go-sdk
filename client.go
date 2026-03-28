@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Lavina-Tech-LLC/saas-support-go/auth"
-	"github.com/Lavina-Tech-LLC/saas-support-go/billing"
-	"github.com/Lavina-Tech-LLC/saas-support-go/report"
+	"github.com/Lavina-Tech-LLC/saas-go-sdk/auth"
+	"github.com/Lavina-Tech-LLC/saas-go-sdk/billing"
+	"github.com/Lavina-Tech-LLC/saas-go-sdk/report"
 )
 
 // ClientOption configures the Client.

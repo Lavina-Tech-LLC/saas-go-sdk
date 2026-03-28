@@ -3,7 +3,7 @@
 Official Go SDK for the [SaaS Support](https://saas-support.com) platform. Provides type-safe access to Auth, Billing, and Report modules with zero mandatory dependencies.
 
 ```
-go get github.com/Lavina-Tech-LLC/saas-support-go
+go get github.com/Lavina-Tech-LLC/saas-go-sdk
 ```
 
 ## Quick Start
@@ -16,8 +16,8 @@ import (
     "fmt"
     "log"
 
-    saassupport "github.com/Lavina-Tech-LLC/saas-support-go"
-    "github.com/Lavina-Tech-LLC/saas-support-go/auth"
+    saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
+    "github.com/Lavina-Tech-LLC/saas-go-sdk/auth"
 )
 
 func main() {
@@ -76,16 +76,10 @@ func main() {
 ## Installation
 
 ```bash
-# Core SDK (zero dependencies)
-go get github.com/Lavina-Tech-LLC/saas-support-go
-
-# Gin middleware (separate module, only if you use Gin)
-go get github.com/Lavina-Tech-LLC/saas-support-go/ginmiddleware
+go get github.com/Lavina-Tech-LLC/saas-go-sdk
 ```
 
 **Requirements:** Go 1.21+
-
-The core SDK has zero external dependencies — stdlib only. The `ginmiddleware` package is a separate Go module to avoid pulling Gin as a transitive dependency for non-Gin users.
 
 ## Client Configuration
 
@@ -105,7 +99,7 @@ client := saassupport.NewClient("pk_live_xxx",
 |--------|-------------|---------|
 | `WithBaseURL(url)` | Override the API base URL | `https://api.saas-support.com/v1` |
 | `WithHTTPClient(hc)` | Provide a custom `*http.Client` | 30s timeout client |
-| `WithUserAgent(ua)` | Set a custom User-Agent header | `saas-support-go/0.1.0` |
+| `WithUserAgent(ua)` | Set a custom User-Agent header | `saas-support-go/0.2.0` |
 
 The client exposes three service namespaces:
 
@@ -625,8 +619,8 @@ Server-side middleware for protecting your API routes using SaaS Support JWT ver
 
 ```go
 import (
-    saassupport "github.com/Lavina-Tech-LLC/saas-support-go"
-    "github.com/Lavina-Tech-LLC/saas-support-go/middleware"
+    saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
+    "github.com/Lavina-Tech-LLC/saas-go-sdk/middleware"
 )
 
 client := saassupport.NewClient("pk_live_xxx")
@@ -663,16 +657,10 @@ mux.Handle("/api/feed", middleware.WithOptionalAuth(client)(http.HandlerFunc(fun
 
 ### Gin Middleware
 
-Separate module — install independently:
-
-```bash
-go get github.com/Lavina-Tech-LLC/saas-support-go/ginmiddleware
-```
-
 ```go
 import (
-    saassupport "github.com/Lavina-Tech-LLC/saas-support-go"
-    "github.com/Lavina-Tech-LLC/saas-support-go/ginmiddleware"
+    saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
+    "github.com/Lavina-Tech-LLC/saas-go-sdk/ginmiddleware"
 )
 
 client := saassupport.NewClient("pk_live_xxx")
@@ -814,9 +802,9 @@ import (
     "log"
     "net/http"
 
-    saassupport "github.com/Lavina-Tech-LLC/saas-support-go"
-    "github.com/Lavina-Tech-LLC/saas-support-go/billing"
-    "github.com/Lavina-Tech-LLC/saas-support-go/middleware"
+    saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
+    "github.com/Lavina-Tech-LLC/saas-go-sdk/billing"
+    "github.com/Lavina-Tech-LLC/saas-go-sdk/middleware"
 )
 
 func main() {

@@ -11,7 +11,7 @@ package saassupport
 
 const (
 	// Version is the current SDK version.
-	Version = "0.1.0"
+	Version = "0.2.0"
 
 	// DefaultURL is the default SaaS Support API base URL.
 	DefaultURL = "https://api.saas-support.com/v1"
