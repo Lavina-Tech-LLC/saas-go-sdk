@@ -14,6 +14,7 @@ type User struct {
 	ProjectID     string `json:"projectId"`
 	EmailVerified bool   `json:"emailVerified"`
 	Provider      string `json:"provider"`
+	Source        string `json:"source,omitempty"` // "self" | "invite"
 	Metadata      string `json:"metadata,omitempty"`
 	MFAEnabled    bool   `json:"mfaEnabled,omitempty"`
 }
@@ -61,8 +62,9 @@ type LoginResult struct {
 
 // RegisterParams are the parameters for Register.
 type RegisterParams struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	InviteToken string `json:"inviteToken,omitempty"` // optional: register via invite
 }
 
 // LoginParams are the parameters for Login.
@@ -234,14 +236,17 @@ type DeleteResult struct {
 
 // Member represents an organisation member.
 type Member struct {
-	UserID string `json:"userId"`
-	Email  string `json:"email"`
-	Role   string `json:"role"`
+	UserID   string `json:"userId"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	RoleID   string `json:"roleId,omitempty"`
+	RoleName string `json:"roleName,omitempty"`
 }
 
 // UpdateMemberRoleParams are the parameters for UpdateMemberRole.
 type UpdateMemberRoleParams struct {
-	Role string `json:"role"`
+	Role   string `json:"role,omitempty"`   // backward compat: system role key
+	RoleID string `json:"roleId,omitempty"` // preferred: UUID of AuthRole
 }
 
 // UpdateResult is returned by update operations.
@@ -258,8 +263,9 @@ type RemoveResult struct {
 
 // SendInviteParams are the parameters for SendInvite.
 type SendInviteParams struct {
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	Email  string `json:"email"`
+	Role   string `json:"role,omitempty"`   // backward compat: system role key
+	RoleID string `json:"roleId,omitempty"` // preferred: UUID of AuthRole
 }
 
 // Invite represents an organisation invite.
@@ -267,14 +273,55 @@ type Invite struct {
 	InviteID  string    `json:"inviteId"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
+	RoleID    string    `json:"roleId,omitempty"`
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
 // AcceptInviteResult is returned by AcceptInvite.
 type AcceptInviteResult struct {
-	OrgID string `json:"orgId"`
-	Role  string `json:"role"`
+	OrgID  string `json:"orgId"`
+	Role   string `json:"role"`
+	RoleID string `json:"roleId,omitempty"`
+}
+
+// --- Invite Link types ---
+
+// CreateInviteLinkParams are the parameters for CreateInviteLink.
+type CreateInviteLinkParams struct {
+	Role    string `json:"role,omitempty"`
+	RoleID  string `json:"roleId,omitempty"`
+	MaxUses int    `json:"maxUses,omitempty"`
+}
+
+// InviteLink represents a reusable invite link.
+type InviteLink struct {
+	ID        string    `json:"id"`
+	Code      string    `json:"code"`
+	Role      string    `json:"role"`
+	RoleID    string    `json:"roleId,omitempty"`
+	RoleName  string    `json:"roleName,omitempty"`
+	MaxUses   int       `json:"maxUses"`
+	UseCount  int       `json:"useCount"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// InviteLinkInfo is the public info about an invite link (no org ID).
+type InviteLinkInfo struct {
+	OrgName      string    `json:"orgName"`
+	OrgAvatarUrl string    `json:"orgAvatarUrl,omitempty"`
+	Role         string    `json:"role"`
+	RoleName     string    `json:"roleName,omitempty"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+}
+
+// UseInviteLinkResult is returned by UseInviteLink.
+type UseInviteLinkResult struct {
+	OrgID   string `json:"orgId"`
+	OrgName string `json:"orgName"`
+	Role    string `json:"role"`
+	RoleID  string `json:"roleId,omitempty"`
 }
 
 // --- OAuth types ---
@@ -302,12 +349,24 @@ type OAuthCallbackParams struct {
 
 // Settings represents the public auth configuration for a project.
 type Settings struct {
-	GoogleEnabled     bool `json:"googleEnabled"`
-	GitHubEnabled     bool `json:"githubEnabled"`
-	EmailEnabled      bool `json:"emailEnabled"`
-	MFAEnforced       bool `json:"mfaEnforced"`
-	PasswordMinLength int  `json:"passwordMinLength"`
-	EmailVerification bool `json:"emailVerification"`
+	GoogleEnabled     bool   `json:"googleEnabled"`
+	GitHubEnabled     bool   `json:"githubEnabled"`
+	EmailEnabled      bool   `json:"emailEnabled"`
+	MFAEnforced       bool   `json:"mfaEnforced"`
+	PasswordMinLength int    `json:"passwordMinLength"`
+	EmailVerification bool   `json:"emailVerification"`
+	OrgCreationPolicy string `json:"orgCreationPolicy"` // "anyone" | "self_registered_only"
+}
+
+// --- Role types ---
+
+// Role represents a project-scoped role definition.
+type Role struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Key         string `json:"key"`
+	Description string `json:"description,omitempty"`
+	IsSystem    bool   `json:"isSystem"`
 }
 
 // --- CSRF types ---
