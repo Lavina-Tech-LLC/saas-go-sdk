@@ -356,6 +356,7 @@ type Settings struct {
 	PasswordMinLength int    `json:"passwordMinLength"`
 	EmailVerification bool   `json:"emailVerification"`
 	OrgCreationPolicy string `json:"orgCreationPolicy"` // "anyone" | "self_registered_only"
+	InviteLinkBaseURL string `json:"inviteLinkBaseUrl,omitempty"`
 }
 
 // --- Role types ---
