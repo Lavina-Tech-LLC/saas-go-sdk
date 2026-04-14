@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
+	"github.com/Lavina-Tech-LLC/saas-go-sdk/auth"
 	"github.com/gin-gonic/gin"
 )
 
@@ -51,30 +52,27 @@ func RequireRole(client *saassupport.Client, allowedRoles ...string) gin.Handler
 			return
 		}
 
-		var role string
-		for _, m := range members {
-			if m.UserID == userID {
-				role = m.Role
+		var member *auth.Member
+		for i := range members {
+			if members[i].UserID == userID {
+				member = &members[i]
 				break
 			}
 		}
-		if role == "" {
+		if member == nil || member.Role == "" {
 			c.AbortWithStatusJSON(403, gin.H{"error": "Insufficient permissions"})
 			return
 		}
 
-		c.Set("role", role)
+		c.Set("role", member.Role)
 
 		if len(allowedRoles) == 0 {
 			c.Next()
 			return
 		}
-
-		for _, allowed := range allowedRoles {
-			if role == allowed {
-				c.Next()
-				return
-			}
+		if member.HasAnyRole(allowedRoles...) {
+			c.Next()
+			return
 		}
 
 		c.AbortWithStatusJSON(403, gin.H{"error": "Insufficient permissions"})

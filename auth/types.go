@@ -234,13 +234,44 @@ type DeleteResult struct {
 
 // --- Member types ---
 
+// MemberRole is one element of Member.Roles — represents a single role
+// assigned to the member (either a system role or a project-defined custom
+// role).
+type MemberRole struct {
+	ID   string `json:"id"`
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
 // Member represents an organisation member.
 type Member struct {
-	UserID   string `json:"userId"`
-	Email    string `json:"email"`
-	Role     string `json:"role"`
-	RoleID   string `json:"roleId,omitempty"`
-	RoleName string `json:"roleName,omitempty"`
+	UserID   string       `json:"userId"`
+	Email    string       `json:"email"`
+	Role     string       `json:"role"`
+	RoleID   string       `json:"roleId,omitempty"`
+	RoleName string       `json:"roleName,omitempty"`
+	Roles    []MemberRole `json:"roles,omitempty"`
+}
+
+// HasAnyRole reports whether the member matches any of the supplied role
+// identifiers. Each identifier is compared against the primary role key,
+// primary role ID, and every key/ID in the Roles array. Empty identifiers
+// never match.
+func (m *Member) HasAnyRole(allowed ...string) bool {
+	for _, a := range allowed {
+		if a == "" {
+			continue
+		}
+		if a == m.Role || a == m.RoleID {
+			return true
+		}
+		for _, r := range m.Roles {
+			if a == r.Key || a == r.ID {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // UpdateMemberRoleParams are the parameters for UpdateMemberRole.

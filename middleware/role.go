@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
+	"github.com/Lavina-Tech-LLC/saas-go-sdk/auth"
 )
 
 const (
@@ -53,31 +54,28 @@ func WithRequireRole(client *saassupport.Client, allowedRoles ...string) func(ht
 				return
 			}
 
-			var role string
-			for _, m := range members {
-				if m.UserID == claims.UserID {
-					role = m.Role
+			var member *auth.Member
+			for i := range members {
+				if members[i].UserID == claims.UserID {
+					member = &members[i]
 					break
 				}
 			}
-			if role == "" {
+			if member == nil || member.Role == "" {
 				writeError(w, http.StatusForbidden, "Insufficient permissions")
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), roleContextKey, role)
+			ctx := context.WithValue(r.Context(), roleContextKey, member.Role)
 			r = r.WithContext(ctx)
 
 			if len(allowedRoles) == 0 {
 				next.ServeHTTP(w, r)
 				return
 			}
-
-			for _, allowed := range allowedRoles {
-				if role == allowed {
-					next.ServeHTTP(w, r)
-					return
-				}
+			if member.HasAnyRole(allowedRoles...) {
+				next.ServeHTTP(w, r)
+				return
 			}
 
 			writeError(w, http.StatusForbidden, "Insufficient permissions")
