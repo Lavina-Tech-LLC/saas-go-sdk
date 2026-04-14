@@ -9,11 +9,13 @@ import (
 	"net/http"
 )
 
-// envelope is the standard API response wrapper.
+// envelope is the standard API response wrapper. The backend emits
+// {data, message, isOk}; older deployments also emit a numeric "code" field.
 type envelope struct {
 	Code    int             `json:"code"`
 	Data    json.RawMessage `json:"data"`
 	Message string          `json:"message"`
+	IsOk    *bool           `json:"isOk"`
 }
 
 // Transport handles HTTP request construction and response parsing.
@@ -95,10 +97,20 @@ func (t *Transport) parseResponse(resp *http.Response, dest interface{}) error {
 		return fmt.Errorf("saassupport: parsing response: %w", err)
 	}
 
-	if env.Code >= 400 {
+	// Detect errors from the HTTP status, the envelope's code field (older
+	// deployments), or the isOk flag (lvn.ResponseCamelCase envelope).
+	if resp.StatusCode >= 400 || env.Code >= 400 || (env.IsOk != nil && !*env.IsOk) {
+		code := resp.StatusCode
+		if env.Code != 0 {
+			code = env.Code
+		}
+		message := env.Message
+		if message == "" {
+			message = resp.Status
+		}
 		return &Error{
-			Code:    env.Code,
-			Message: env.Message,
+			Code:    code,
+			Message: message,
 			RawBody: rawBody,
 		}
 	}

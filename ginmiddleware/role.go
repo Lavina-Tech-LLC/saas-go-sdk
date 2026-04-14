@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
-	"github.com/Lavina-Tech-LLC/saas-go-sdk/auth"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,20 +45,8 @@ func RequireRole(client *saassupport.Client, allowedRoles ...string) gin.Handler
 		}
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 
-		members, err := client.Auth.ListMembers(c.Request.Context(), token, orgID)
-		if err != nil {
-			c.AbortWithStatusJSON(403, gin.H{"error": "Insufficient permissions"})
-			return
-		}
-
-		var member *auth.Member
-		for i := range members {
-			if members[i].UserID == userID {
-				member = &members[i]
-				break
-			}
-		}
-		if member == nil || member.Role == "" {
+		member, err := client.Auth.GetMyMembership(c.Request.Context(), token, orgID)
+		if err != nil || member == nil || member.Role == "" {
 			c.AbortWithStatusJSON(403, gin.H{"error": "Insufficient permissions"})
 			return
 		}

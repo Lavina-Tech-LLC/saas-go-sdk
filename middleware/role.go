@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	saassupport "github.com/Lavina-Tech-LLC/saas-go-sdk"
-	"github.com/Lavina-Tech-LLC/saas-go-sdk/auth"
 )
 
 const (
@@ -48,20 +47,8 @@ func WithRequireRole(client *saassupport.Client, allowedRoles ...string) func(ht
 			}
 			token := strings.TrimPrefix(authHeader, "Bearer ")
 
-			members, err := client.Auth.ListMembers(r.Context(), token, orgID)
-			if err != nil {
-				writeError(w, http.StatusForbidden, "Insufficient permissions")
-				return
-			}
-
-			var member *auth.Member
-			for i := range members {
-				if members[i].UserID == claims.UserID {
-					member = &members[i]
-					break
-				}
-			}
-			if member == nil || member.Role == "" {
+			member, err := client.Auth.GetMyMembership(r.Context(), token, orgID)
+			if err != nil || member == nil || member.Role == "" {
 				writeError(w, http.StatusForbidden, "Insufficient permissions")
 				return
 			}
