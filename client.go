@@ -83,3 +83,9 @@ func NewClient(apiKey string, opts ...ClientOption) *Client {
 func (c *Client) VerifyToken(ctx context.Context, token string) (*auth.TokenClaims, error) {
 	return c.Auth.VerifyToken(ctx, &auth.VerifyTokenParams{Token: token})
 }
+
+// VerifyAPIKey is a convenience method that calls Auth.VerifyAPIKey.
+// Used by middleware that accepts X-API-Key-authenticated requests.
+func (c *Client) VerifyAPIKey(ctx context.Context, apiKey string) (*auth.APIKeyClaims, error) {
+	return c.Auth.VerifyAPIKey(ctx, &auth.VerifyAPIKeyParams{APIKey: apiKey})
+}

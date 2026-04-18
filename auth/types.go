@@ -114,6 +114,24 @@ type TokenClaims struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
+// VerifyAPIKeyParams are the parameters for VerifyAPIKey.
+type VerifyAPIKeyParams struct {
+	APIKey string `json:"apiKey"`
+}
+
+// APIKeyClaims is returned by VerifyAPIKey. Valid reports whether the key
+// was recognised, not revoked, and (if ExpiresAt is set) not expired. When
+// Valid is false the remaining fields are zero-valued.
+type APIKeyClaims struct {
+	Valid     bool       `json:"valid"`
+	UserID    string     `json:"userId"`
+	Email     string     `json:"email"`
+	OrgID     string     `json:"orgId"`
+	ProjectID string     `json:"projectId"`
+	Roles     []Role     `json:"roles"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+}
+
 // MagicLinkSendParams are the parameters for MagicLinkSend.
 type MagicLinkSendParams struct {
 	Email       string `json:"email"`

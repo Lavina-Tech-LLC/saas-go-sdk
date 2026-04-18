@@ -73,18 +73,26 @@ func GetClaims(r *http.Request) *auth.TokenClaims {
 }
 
 // GetUserID returns the user ID from the context.
+// Resolves for both JWT and API-key authenticated requests.
 // Returns an empty string if the request was not authenticated.
 func GetUserID(r *http.Request) string {
 	if claims := GetClaims(r); claims != nil {
+		return claims.UserID
+	}
+	if claims := GetAPIKeyClaims(r); claims != nil {
 		return claims.UserID
 	}
 	return ""
 }
 
 // GetEmail returns the email from the context.
+// Resolves for both JWT and API-key authenticated requests.
 // Returns an empty string if the request was not authenticated.
 func GetEmail(r *http.Request) string {
 	if claims := GetClaims(r); claims != nil {
+		return claims.Email
+	}
+	if claims := GetAPIKeyClaims(r); claims != nil {
 		return claims.Email
 	}
 	return ""
