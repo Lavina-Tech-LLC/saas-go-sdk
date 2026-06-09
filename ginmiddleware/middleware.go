@@ -9,7 +9,7 @@ import (
 )
 
 // Auth returns a Gin middleware that verifies the Bearer token and sets
-// "claims", "userId", and "email" in the Gin context.
+// "claims", "userId", "email", and "name" in the Gin context.
 //
 // Usage:
 //
@@ -36,6 +36,7 @@ func Auth(client *saassupport.Client) gin.HandlerFunc {
 		c.Set("claims", claims)
 		c.Set("userId", claims.UserID)
 		c.Set("email", claims.Email)
+		c.Set("name", claims.Name)
 		c.Next()
 	}
 }
@@ -52,6 +53,7 @@ func OptionalAuth(client *saassupport.Client) gin.HandlerFunc {
 				c.Set("claims", claims)
 				c.Set("userId", claims.UserID)
 				c.Set("email", claims.Email)
+				c.Set("name", claims.Name)
 			}
 		}
 		c.Next()

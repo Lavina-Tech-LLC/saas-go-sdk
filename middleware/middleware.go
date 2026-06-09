@@ -98,6 +98,16 @@ func GetEmail(r *http.Request) string {
 	return ""
 }
 
+// GetName returns the user's name from the context.
+// Only JWT-authenticated requests carry a name; returns an empty string
+// otherwise (including API-key authenticated requests).
+func GetName(r *http.Request) string {
+	if claims := GetClaims(r); claims != nil {
+		return claims.Name
+	}
+	return ""
+}
+
 func writeError(w http.ResponseWriter, code int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

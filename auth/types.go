@@ -110,6 +110,7 @@ type TokenClaims struct {
 	Valid     bool      `json:"valid"`
 	UserID    string    `json:"userId"`
 	Email     string    `json:"email"`
+	Name      string    `json:"name"`
 	ProjectID string    `json:"projectId"`
 	ExpiresAt time.Time `json:"expiresAt"`
 }
