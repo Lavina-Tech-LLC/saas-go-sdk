@@ -7,12 +7,15 @@ import (
 
 // --- User types ---
 
-// User represents an authenticated end-user.
+// User represents an authenticated end-user. A user is identified by an
+// e-mail, a phone number, or both; the unused field is empty.
 type User struct {
 	ID            string `json:"id"`
 	Email         string `json:"email"`
+	Phone         string `json:"phone,omitempty"` // E.164
 	ProjectID     string `json:"projectId"`
 	EmailVerified bool   `json:"emailVerified"`
+	PhoneVerified bool   `json:"phoneVerified,omitempty"`
 	Provider      string `json:"provider"`
 	Source        string `json:"source,omitempty"` // "self" | "invite"
 	Metadata      string `json:"metadata,omitempty"`
@@ -46,13 +49,21 @@ type AuthResult struct {
 	User         User   `json:"user"`
 }
 
-// LoginResult is returned by Login. Check MFARequired to determine the flow.
+// LoginResult is returned by Login. Check MFARequired and FaceRequired to
+// determine which step, if any, still has to be completed.
 type LoginResult struct {
 	// MFARequired is true when the user has MFA enabled.
 	MFARequired bool   `json:"mfaRequired"`
 	MFAToken    string `json:"mfaToken,omitempty"`
 
-	// Populated when MFARequired is false.
+	// FaceRequired is true when the project uses face control. Complete the
+	// sign-in with VerifyFace, or with EnrollFace when FaceEnrolled is false.
+	FaceRequired bool     `json:"faceRequired"`
+	FaceToken    string   `json:"faceToken,omitempty"`
+	FaceEnrolled bool     `json:"enrolled,omitempty"`
+	FacePoses    []string `json:"poses,omitempty"`
+
+	// Populated when neither step is pending.
 	AccessToken  string `json:"accessToken,omitempty"`
 	RefreshToken string `json:"refreshToken,omitempty"`
 	User         *User  `json:"user,omitempty"`
@@ -60,16 +71,30 @@ type LoginResult struct {
 
 // --- Request param types ---
 
-// RegisterParams are the parameters for Register.
+// RegisterParams are the parameters for Register. Set exactly one of
+// Email / Phone — whichever the project's auth settings allow.
 type RegisterParams struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	InviteToken string `json:"inviteToken,omitempty"` // optional: register via invite
+	Email    string `json:"email,omitempty"`
+	Phone    string `json:"phone,omitempty"` // accepted in any format; normalised to E.164
+	Password string `json:"password"`
+	// OTPToken proves ownership of Phone, obtained from VerifyPhoneOTP. Only
+	// required when Settings.PhoneOtpRequired is true.
+	OTPToken string `json:"otpToken,omitempty"`
+	// InviteToken registers the user via a per-email invite.
+	//
+	// Deprecated: use InviteCode, which also accepts reusable link codes.
+	InviteToken string `json:"inviteToken,omitempty"`
+	// InviteCode registers the user via an invite — either a per-email invite
+	// token or a reusable invite link code. Registering this way attaches the
+	// user to the inviting organisation instead of creating a new one, and
+	// works even when self-service registration is disabled.
+	InviteCode string `json:"inviteCode,omitempty"`
 }
 
-// LoginParams are the parameters for Login.
+// LoginParams are the parameters for Login. Set exactly one of Email / Phone.
 type LoginParams struct {
-	Email    string `json:"email"`
+	Email    string `json:"email,omitempty"`
+	Phone    string `json:"phone,omitempty"` // accepted in any format; normalised to E.164
 	Password string `json:"password"`
 }
 
@@ -110,6 +135,7 @@ type TokenClaims struct {
 	Valid     bool      `json:"valid"`
 	UserID    string    `json:"userId"`
 	Email     string    `json:"email"`
+	Phone     string    `json:"phone,omitempty"`
 	Name      string    `json:"name"`
 	ProjectID string    `json:"projectId"`
 	ExpiresAt time.Time `json:"expiresAt"`
@@ -169,6 +195,106 @@ type PasswordResetVerifyParams struct {
 // PasswordResetVerifyResult is returned by PasswordResetVerify.
 type PasswordResetVerifyResult struct {
 	Reset bool `json:"reset"`
+}
+
+// --- Phone verification types ---
+
+// PhoneOTPPurpose values accepted by SendPhoneOTP / VerifyPhoneOTP.
+const (
+	PhoneOTPPurposeRegister = "register"
+	PhoneOTPPurposeReset    = "reset"
+)
+
+// PhoneOTPSendParams are the parameters for SendPhoneOTP.
+type PhoneOTPSendParams struct {
+	Phone string `json:"phone"`
+	// Purpose defaults to "register" when empty.
+	Purpose string `json:"purpose,omitempty"`
+}
+
+// PhoneOTPSendResult is returned by SendPhoneOTP.
+type PhoneOTPSendResult struct {
+	Sent bool `json:"sent"`
+	// ResendAfterSeconds is how long to wait before requesting another code.
+	ResendAfterSeconds int `json:"resendAfterSeconds"`
+	// ExpiresInSeconds is how long the delivered code stays valid.
+	ExpiresInSeconds int `json:"expiresInSeconds"`
+}
+
+// PhoneOTPVerifyParams are the parameters for VerifyPhoneOTP.
+type PhoneOTPVerifyParams struct {
+	Phone   string `json:"phone"`
+	Code    string `json:"code"`
+	Purpose string `json:"purpose,omitempty"`
+}
+
+// PhoneOTPVerifyResult is returned by VerifyPhoneOTP.
+type PhoneOTPVerifyResult struct {
+	Verified bool   `json:"verified"`
+	OTPToken string `json:"otpToken"`
+	// ExpiresInSeconds is how long OTPToken stays usable.
+	ExpiresInSeconds int `json:"expiresInSeconds"`
+}
+
+// --- Face control types ---
+
+// Face verification modes reported by Settings.FaceVerificationMode.
+const (
+	FaceModeOff      = "off"
+	FaceModeOptional = "optional"
+	FaceModeRequired = "required"
+)
+
+// FaceSample is one captured head pose. Only the descriptor is transmitted —
+// camera frames stay in the browser.
+type FaceSample struct {
+	Pose       string    `json:"pose"`
+	Descriptor []float64 `json:"descriptor"`
+	Quality    float64   `json:"quality"`
+}
+
+// FaceEnrollParams are the parameters for EnrollFace.
+type FaceEnrollParams struct {
+	// FaceToken authorises enrolment during a sign-in. Leave empty to enrol the
+	// caller identified by the request's access token.
+	FaceToken string       `json:"faceToken,omitempty"`
+	Model     string       `json:"model,omitempty"`
+	Samples   []FaceSample `json:"samples"`
+	// Consent must be true — face data is special-category personal data.
+	Consent bool `json:"consent"`
+}
+
+// FaceEnrollResult is returned by EnrollFace. The session fields are populated
+// only when the enrolment also completed a sign-in.
+type FaceEnrollResult struct {
+	Enrolled     bool   `json:"enrolled"`
+	PoseCount    int    `json:"poseCount,omitempty"`
+	AccessToken  string `json:"accessToken,omitempty"`
+	RefreshToken string `json:"refreshToken,omitempty"`
+	User         *User  `json:"user,omitempty"`
+}
+
+// FaceVerifyParams are the parameters for VerifyFace.
+type FaceVerifyParams struct {
+	FaceToken  string    `json:"faceToken"`
+	Descriptor []float64 `json:"descriptor"`
+}
+
+// FaceStatusResult is returned by FaceStatus.
+type FaceStatusResult struct {
+	Mode           string     `json:"mode"`
+	Enrolled       bool       `json:"enrolled"`
+	EnrolledAt     *time.Time `json:"enrolledAt,omitempty"`
+	PoseCount      int        `json:"poseCount,omitempty"`
+	LastVerifiedAt *time.Time `json:"lastVerifiedAt,omitempty"`
+	Poses          []string   `json:"poses,omitempty"`
+}
+
+// PhonePasswordResetParams are the parameters for PhonePasswordReset.
+type PhonePasswordResetParams struct {
+	Phone       string `json:"phone"`
+	OTPToken    string `json:"otpToken"`
+	NewPassword string `json:"newPassword"`
 }
 
 // UpdateProfileParams are the parameters for UpdateMe.
@@ -342,6 +468,9 @@ type CreateInviteLinkParams struct {
 	Role    string `json:"role,omitempty"`
 	RoleID  string `json:"roleId,omitempty"`
 	MaxUses int    `json:"maxUses,omitempty"`
+	// ExpiresInHours overrides the project default lifetime. Point it at 0 for
+	// a link that never expires; leave nil to use the project default.
+	ExpiresInHours *int `json:"expiresInHours,omitempty"`
 }
 
 // InviteLink represents a reusable invite link.
@@ -393,20 +522,48 @@ type OAuthCallbackParams struct {
 	Provider string `json:"-"` // Path param
 	Code     string `json:"code"`
 	State    string `json:"state"`
+	// InviteCode keeps an OAuth sign-up on the invite path: the user is added
+	// to the inviting organisation and no personal organisation is created.
+	InviteCode string `json:"inviteCode,omitempty"`
 }
 
 // --- Settings types ---
 
 // Settings represents the public auth configuration for a project.
 type Settings struct {
-	GoogleEnabled     bool   `json:"googleEnabled"`
-	GitHubEnabled     bool   `json:"githubEnabled"`
-	EmailEnabled      bool   `json:"emailEnabled"`
+	GoogleEnabled bool `json:"googleEnabled"`
+	GitHubEnabled bool `json:"githubEnabled"`
+	// EmailEnabled is the legacy name of EmailAuthEnabled.
+	//
+	// Deprecated: use EmailAuthEnabled.
+	EmailEnabled bool `json:"emailEnabled"`
+	// EmailAuthEnabled reports whether an e-mail address is accepted as the
+	// login identifier; PhoneAuthEnabled does the same for phone numbers.
+	EmailAuthEnabled bool `json:"emailAuthEnabled"`
+	PhoneAuthEnabled bool `json:"phoneAuthEnabled"`
+	// DefaultPhoneCountryCode ("+992") is applied to numbers typed without one.
+	DefaultPhoneCountryCode string `json:"defaultPhoneCountryCode,omitempty"`
+	// PhoneOtpRequired reports whether a phone sign-up must carry an
+	// SMS-verified code. It is already resolved against the project's SMS
+	// provider status, so a project asking for verification without a working
+	// provider reports false. Never re-derive this client-side.
+	PhoneOtpRequired bool `json:"phoneOtpRequired"`
+	// FaceVerificationMode is "off", "optional" or "required".
+	FaceVerificationMode string `json:"faceVerificationMode"`
+	// FaceModelURL overrides where a browser SDK loads the face model from.
+	FaceModelURL      string `json:"faceModelUrl,omitempty"`
 	MFAEnforced       bool   `json:"mfaEnforced"`
 	PasswordMinLength int    `json:"passwordMinLength"`
 	EmailVerification bool   `json:"emailVerification"`
 	OrgCreationPolicy string `json:"orgCreationPolicy"` // "anyone" | "self_registered_only"
 	InviteLinkBaseURL string `json:"inviteLinkBaseUrl,omitempty"`
+	// RegistrationEnabled reports whether self-service sign-up is open.
+	// Registration through an invite works even when this is false.
+	RegistrationEnabled bool `json:"registrationEnabled"`
+	// CreateOrgOnRegistration reports whether a personal organisation is
+	// created for a new self-registered user. When false, a user may legitimately
+	// have no organisation until they accept an invite.
+	CreateOrgOnRegistration bool `json:"createOrgOnRegistration"`
 }
 
 // --- Role types ---
