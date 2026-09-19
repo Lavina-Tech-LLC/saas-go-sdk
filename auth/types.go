@@ -437,17 +437,24 @@ type RemoveResult struct {
 
 // --- Invite types ---
 
-// SendInviteParams are the parameters for SendInvite.
+// SendInviteParams are the parameters for SendInvite. Set exactly one
+// identifier — Email or Phone — and it has to be one the project's sign-in
+// methods accept. Re-inviting the same person replaces their pending invite
+// with a fresh link.
 type SendInviteParams struct {
-	Email  string `json:"email"`
+	Email  string `json:"email,omitempty"`
+	Phone  string `json:"phone,omitempty"`  // accepted in any format; normalised to E.164
 	Role   string `json:"role,omitempty"`   // backward compat: system role key
 	RoleID string `json:"roleId,omitempty"` // preferred: UUID of AuthRole
 }
 
-// Invite represents an organisation invite.
+// Invite represents an organisation invite. Nothing is delivered by the
+// platform: pass URL on to the invitee however you like.
 type Invite struct {
 	InviteID  string    `json:"inviteId"`
 	Email     string    `json:"email"`
+	Phone     string    `json:"phone,omitempty"`
+	URL       string    `json:"url,omitempty"`
 	Role      string    `json:"role"`
 	RoleID    string    `json:"roleId,omitempty"`
 	Token     string    `json:"token"`
